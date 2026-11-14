@@ -22,7 +22,7 @@
 
 ## 파일
 - `index.html` — 앱 전체 (CSS/JS/아이콘 인라인, 단일 파일)
-- `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png` — 홈 화면 설치용
+- `manifest.webmanifest`, `favicon.png`, `icon-192.png`, `icon-512.png` — 탭 아이콘·홈 화면 설치용 (결혼사진 얼굴 부분을 자른 사진 아이콘)
 - `sw.js` — 오프라인 실행용 서비스워커 (앱 껍데기만 캐시, 기록은 저장하지 않음)
 
 ## 개발 메모
