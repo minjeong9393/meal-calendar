@@ -1,7 +1,7 @@
 /* 신철민정 식단표 서비스워커 — 앱 껍데기만 캐시해서 오프라인 실행·홈 화면 설치를 돕습니다.
  * 식단 기록은 브라우저 localStorage 에만 있고 여기에는 저장하지 않습니다.
  * 화면(HTML)과 매니페스트는 네트워크 우선이라 새 버전이 바로 반영됩니다. */
-var CACHE = 'meal-calendar-v5';
+var CACHE = 'meal-calendar-v6';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './favicon.png?v=4', './icon-192.png?v=4', './icon-512.png?v=4'];
 
 self.addEventListener('install', function (e) {

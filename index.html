@@ -165,14 +165,20 @@ ul,ol{list-style:none}
   box-shadow:0 2px 8px -2px var(--accent);
 }
 .mcell.sel:not(.today){box-shadow:inset 0 0 0 2px var(--accent)}
-/* 달력 칸을 위(아침·점심)·아래(저녁) 두 칸으로 나눔 — 보통은 반반, 메뉴가 많은 날은 칸이 늘어남 */
+/* 달력 칸을 위(아침·점심)·아래(저녁·기타) 두 칸으로 나눔.
+   둘 다 있으면 반반, 한쪽에 기록이 없으면 그 칸은 통째로 display:none —
+   빈 자리도 점선도 없이 있는 칸이 날짜 번호 바로 아래에서 시작한다. */
 .mslots{display:grid;grid-template-rows:1fr 1fr;width:100%;flex:1 1 auto}
-.mslots.no-top{grid-template-rows:minmax(44px,1fr) auto}
-.mslots.no-bot{grid-template-rows:auto minmax(44px,1fr)}
+.mslots.no-top,.mslots.no-bot{grid-template-rows:auto}
 .mslots.is-blank{grid-template-rows:auto auto}
 .mslot{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0}
+.mslots.no-top .mslot-top{display:none}
+.mslots.no-bot .mslot-bot{display:none}
+.mslots.is-blank .mslot{display:none}
 .mslot-bot{border-top:1px dashed var(--line-soft);padding-top:4px;margin-top:4px}
 .mslot-bot.is-empty{border-top:0;padding-top:0;margin-top:0}
+/* 위 칸이 없으면 아래 칸 위의 점선도 없앤다 (날짜 번호 바로 밑에 붙음) */
+.mslots.no-top .mslot-bot{border-top:0;padding-top:0;margin-top:0}
 .slbl{font-size:9px;font-weight:700;color:var(--text-3);line-height:1;font-style:normal;margin-bottom:2px;letter-spacing:-.01em}
 /* 메뉴 표시: 왼쪽 색상띠 없이 종류 색을 옅게 깔아 밝은 파스텔 칩으로 보여준다 */
 .pill{
@@ -894,7 +900,8 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   function slotsHtml(ms) {
     var top = ms.filter(function (m) { return isTopSlot(m.s); });
     var bot = ms.filter(function (m) { return !isTopSlot(m.s); });
-    /* 한쪽만 비었으면 빈 쪽은 작게 두고, 메뉴가 있는 쪽이 제 높이를 갖게 한다 */
+    /* 한쪽에 기록이 없으면 그 칸은 CSS 로 통째로 숨긴다(display:none) —
+       점심이 없는 날은 아래 칸이 날짜 번호 바로 밑에서, 둘 다 있으면 반반으로. */
     var cls = 'mslots' + (!top.length && !bot.length ? ' is-blank' : !top.length ? ' no-top' : !bot.length ? ' no-bot' : '');
     return '<span class="' + cls + '">' + slotBoxHtml('top', top) + slotBoxHtml('bot', bot) + '</span>';
   }
