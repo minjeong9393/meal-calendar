@@ -29,13 +29,14 @@
   --text-2:#64748b;
   --text-3:#94a3b8;
   --line:#e8edf3;
+  --line-soft:#e2e8f0;
   --sun:#ef5350;
   --sat:#3b82f6;
   --shadow-s:0 1px 2px rgba(23,43,77,.05);
   --shadow-m:0 10px 30px rgba(23,43,77,.10);
   --r-card:14px;
   --r-pill:999px;
-  --row-h:156px;
+  --row-h:168px;
   --font:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Pretendard Variable","Noto Sans KR","Malgun Gothic","Segoe UI",system-ui,sans-serif;
 }
 [data-theme="dark"]{
@@ -48,6 +49,7 @@
   --text-2:#9aa8b8;
   --text-3:#6f7d8c;
   --line:#242e3b;
+  --line-soft:#2b3646;
   --sun:#f87171;
   --sat:#7cb0ff;
   --shadow-s:0 1px 2px rgba(0,0,0,.4);
@@ -83,7 +85,7 @@ ul,ol{list-style:none}
 @media (min-width:760px){
   body{background:#eef1f6}
   #root{box-shadow:0 0 0 1px var(--line),0 24px 60px rgba(20,28,34,.12);background:var(--bg)}
-  :root{--row-h:176px}
+  :root{--row-h:188px}
 }
 [data-theme="dark"] body{background:#0b0f15}
 
@@ -163,7 +165,12 @@ ul,ol{list-style:none}
   box-shadow:0 2px 8px -2px var(--accent);
 }
 .mcell.sel:not(.today){box-shadow:inset 0 0 0 2px var(--accent)}
-.mpills{display:flex;flex-direction:column;gap:3px}
+/* 달력 칸을 위(아침·점심)·아래(저녁) 두 칸으로 나눔 — 보통은 반반, 메뉴가 많은 날은 칸이 늘어남 */
+.mslots{display:grid;grid-template-rows:1fr 1fr;width:100%;flex:1 1 auto}
+.mslot{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0}
+.mslot-bot{border-top:1px dashed var(--line-soft);padding-top:4px;margin-top:4px}
+.mslot-bot.is-empty{border-top:0;padding-top:0;margin-top:0}
+.slbl{font-size:9px;font-weight:700;color:var(--text-3);line-height:1;font-style:normal;margin-bottom:2px;letter-spacing:-.01em}
 /* 메뉴 표시: 왼쪽 색상띠 없이 종류 색을 옅게 깔아 밝은 파스텔 칩으로 보여준다 */
 .pill{
   display:block;white-space:normal;word-break:break-word;overflow-wrap:anywhere;
@@ -424,7 +431,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
    *  상수
    * ------------------------------------------------------------------ */
   var STORE_KEY = 'meal_calendar_v1';
-  var APP_VER = '1.2.0';
+  var APP_VER = '1.3.0';
 
   /* 팔레트 버전. 1.x 의 어두운 색으로 저장된 화면은 한 번만 밝은 색으로 옮긴다. */
   var PALETTE_VER = 3;
@@ -442,6 +449,8 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   CATS.forEach(function (c) { CATMAP[c.id] = c; });
 
   var SLOTS = ['아침', '점심', '저녁', '기타'];
+  /* 새로 적을 때는 저녁이 기본 — 저녁은 0번, 점심은 1번만 누르면 된다 */
+  var SLOT_DEFAULT = '저녁';
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   var ACCENTS = ['#3b9eff', '#2ec4a6', '#ff7e67', '#9b87f5', '#f59e0b', '#ec4899', '#56ccf2', '#4ade80'];
   /* 1.x 가 쓰던 어두운 기본 팔레트 — 저장본 승격에만 쓴다 */
@@ -499,6 +508,16 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   function catName(id) { return CATMAP[id] ? CATMAP[id].name : '기타'; }
   function isDateKey(k) { return /^\d{4}-\d{2}-\d{2}$/.test(String(k || '')); }
 
+  /* 끼니 순서: 아침 → 점심 → 저녁 → 기타 → (예전 기록의 빈 값)은 저녁 자리에 */
+  function slotRank(s) { var i = SLOTS.indexOf(s); return i >= 0 ? i : 2; }
+  function sortMeals(list) {
+    return (list || []).map(function (m, i) { return { m: m, i: i }; })
+      .sort(function (a, b) { return slotRank(a.m.s) - slotRank(b.m.s) || a.i - b.i; })
+      .map(function (x) { return x.m; });
+  }
+  /* 달력 칸 위쪽 = 아침·점심, 아래쪽 = 저녁·기타(와 예전 기록의 빈 값) */
+  function isTopSlot(s) { return s === '아침' || s === '점심'; }
+
   /* ------------------------------------------------------------------ *
    *  기본 데이터
    * ------------------------------------------------------------------ */
@@ -521,6 +540,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     return true;
   }
 
+  /* [메뉴, 종류, 끼니] — 11월 기록은 저녁이 기본, 한 끼만 점심 */
   var SEED = {};
 
   /* ------------------------------------------------------------------ *
@@ -542,7 +562,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       updatedAt: new Date().toISOString()
     };
     Object.keys(SEED).forEach(function (k) {
-      s.meals[k] = SEED[k].map(function (x) { return { id: uid(), t: x[0], c: x[1], s: '', m: '' }; });
+      s.meals[k] = SEED[k].map(function (x) { return { id: uid(), t: x[0], c: x[1], s: x[2] || SLOT_DEFAULT, m: '' }; });
     });
     return s;
   }
@@ -651,7 +671,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   var sheet = null;
   var toastTimer = null;
 
-  function mealsOf(k) { return (state.meals[k] || []); }
+  function mealsOf(k) { return sortMeals(state.meals[k] || []); }
   function mealCount() { var n = 0; Object.keys(state.meals).forEach(function (k) { n += state.meals[k].length; }); return n; }
   function foundMeal(id) {
     var out = null;
@@ -680,7 +700,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       id: uid(),
       t: String(data && data.t || '').trim().slice(0, 120),
       c: CATMAP[data && data.c] ? data.c : 'home',
-      s: SLOTS.indexOf(data && data.s) >= 0 ? data.s : '',
+      s: SLOTS.indexOf(data && data.s) >= 0 ? data.s : SLOT_DEFAULT,
       m: String(data && data.m || '').trim().slice(0, 300)
     };
     if (!m.t) return null;
@@ -851,6 +871,29 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     return '<span class="pill" style="--c:' + catColor(m.c) + '">' + esc(m.t) + '</span>';
   }
 
+  /* 달력 한 칸의 위(아침·점심) / 아래(저녁·기타) 두 칸. 끼니 이름표는 그 끼니가 있을 때만 작게 보여 준다. */
+  function slotBoxHtml(where, ms) {
+    var order = where === 'top' ? ['아침', '점심'] : ['저녁', '기타'];
+    var groups = {};
+    ms.forEach(function (m) {
+      /* 예전에 끼니를 안 적은 기록은 저녁으로 보여 준다 */
+      var s = (where === 'bot' && m.s !== '기타') ? '저녁' : m.s;
+      (groups[s] = groups[s] || []).push(m);
+    });
+    var html = '';
+    order.forEach(function (s) {
+      var g = groups[s];
+      if (!g || !g.length) return;
+      html += '<i class="slbl">' + esc(s) + '</i>' + g.map(pillHtml).join('');
+    });
+    return '<span class="mslot mslot-' + where + (html ? '' : ' is-empty') + '">' + html + '</span>';
+  }
+  function slotsHtml(ms) {
+    var top = ms.filter(function (m) { return isTopSlot(m.s); });
+    var bot = ms.filter(function (m) { return !isTopSlot(m.s); });
+    return '<span class="mslots">' + slotBoxHtml('top', top) + slotBoxHtml('bot', bot) + '</span>';
+  }
+
   function renderMonth() {
     var d = parseKey(ui.cursor);
     var y = d.getFullYear(), m = d.getMonth() + 1;
@@ -865,7 +908,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       var cls = ['mcell', inMonth ? '' : 'out', k === tk ? 'today' : '', k === ui.cursor ? 'sel' : '', wd === 0 ? 'sun' : wd === 6 ? 'sat' : ''].join(' ');
       return '<button type="button" class="' + cls + '" data-act="openDay" data-date="' + k + '" aria-label="' + fmtDay(k) + ' 식단 ' + ms.length + '개">' +
         '<span class="mnum">' + dd.getDate() + '</span>' +
-        '<span class="mpills">' + ms.map(pillHtml).join('') + '</span>' +
+        slotsHtml(ms) +
         '</button>';
     }).join('');
     h += '</div><div class="mspacer"></div>';
@@ -1045,7 +1088,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       '<div class="lbl">' + (em ? '식단 수정' : '식단 추가') + '</div>' +
       '<div class="formrow" style="margin-top:6px"><input class="field" name="title" value="' + esc(em ? em.t : '') + '" placeholder="무엇을 먹었나요? (예: 오삼불고기)" aria-label="식단 이름"></div>' +
       '<div class="lbl">종류</div><div class="chiprow">' + chipRow(CATS, 'cat', em ? em.c : 'home') + '</div>' +
-      '<div class="lbl">때 (선택)</div><div class="chiprow">' + chipRow(SLOTS, 'slot', em ? em.s : '') + '</div>' +
+      '<div class="lbl">때 (선택)</div><div class="chiprow">' + chipRow(SLOTS, 'slot', em ? em.s : SLOT_DEFAULT) + '</div>' +
       '<div class="formrow"><input class="field" name="memo" value="' + esc(em ? em.m : '') + '" placeholder="메모 (선택)" aria-label="메모"></div>' +
       (em ? '' : quickPicks(k)) +
       '<div class="rowbtns">' +
