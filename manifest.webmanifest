@@ -1,17 +1,24 @@
 {
-  "name": "식단 달력",
-  "short_name": "식단",
+  "name": "신철민정 식단표",
+  "short_name": "신철민정 식단표",
   "description": "광고 없이 하루·주간·월간으로 식단을 기록하는 달력. 기록은 기기에 저장되고, JSON으로 백업·복원할 수 있어요.",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "theme_color": "#3b9eff",
   "background_color": "#fafbfd",
-  "categories": ["lifestyle", "health", "productivity"],
+  "categories": [
+    "lifestyle",
+    "health",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "icon-192.png",

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>식단 달력 · 광고 없는 식단 기록</title>
+<title>신철민정 식단표</title>
 <meta name="description" content="광고 없이 하루·주간·월간으로 식단을 기록하는 달력. 기기에 저장되고, 백업도 됩니다.">
 <meta name="theme-color" content="#3b9eff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="식단 달력">
+<meta name="apple-mobile-web-app-title" content="신철민정 식단표">
 <meta name="color-scheme" content="light dark">
 <meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex">
@@ -372,6 +372,38 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 [data-theme="dark"] #toast{background:rgba(232,236,238,.95);color:#12181b}
 
+/* ---------- 가족 연동 ---------- */
+.syncpill{
+  display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 9px;flex:0 0 auto;
+  border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  color:var(--text-2);font-size:11px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.syncpill svg{width:14px;height:14px;flex:0 0 auto}
+.syncpill .lbl2{line-height:1}
+.syncpill[data-status="live"]{color:#0b8a66;border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.10)}
+.syncpill[data-status="sync"]{color:var(--accent);border-color:rgba(59,158,255,.45);background:var(--accent-soft)}
+.syncpill[data-status="offline"]{color:#b45309;border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.10)}
+[data-theme="dark"] .syncpill[data-status="live"]{color:#4ade80;background:rgba(74,222,128,.12)}
+[data-theme="dark"] .syncpill[data-status="offline"]{color:#fbbf24;background:rgba(251,191,36,.12)}
+@media (max-width:359px){ .syncpill .lbl2{display:none} .syncpill{padding:0 8px} }
+
+.syncbox{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin:2px 0 10px;padding:11px 12px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.syncbox .sdot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:0 0 auto}
+.syncbox b{font-size:14px;font-weight:800;letter-spacing:-.02em}
+.syncbox code{margin-left:auto;font-size:12px;font-weight:800;color:var(--text-2);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:3px 7px}
+.syncbox[data-status="live"] .sdot{background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
+.syncbox[data-status="sync"] .sdot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.syncbox[data-status="offline"] .sdot{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16)}
+
+.btn.wide{width:100%;margin-top:10px;flex:1 1 auto}
+.field.ro{background:var(--surface-2);color:var(--text-2);font-size:13px;font-weight:700}
+.field.ro:focus{border-color:var(--line);box-shadow:none}
+
 </style>
 </head>
 <body>
@@ -644,6 +676,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     if (!m.t) return null;
     list.push(m);
     saveState();
+    syncPushDate(k);
     return m;
   }
   function updateMeal(k, id, patch) {
@@ -656,6 +689,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
         if (patch.s != null) list[i].s = SLOTS.indexOf(patch.s) >= 0 ? patch.s : '';
         if (patch.m != null) list[i].m = String(patch.m).trim().slice(0, 300);
         saveState();
+        syncPushDate(k);
         return list[i];
       }
     }
@@ -666,6 +700,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     state.meals[k] = list.filter(function (m) { return m.id !== id; });
     if (!state.meals[k].length) delete state.meals[k];
     saveState();
+    syncPushDate(k);
   }
   function moveMeal(k, id, dir) {
     var list = state.meals[k] || [];
@@ -674,6 +709,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     if (i < 0 || j < 0 || j >= list.length) return false;
     var tmp = list[i]; list[i] = list[j]; list[j] = tmp;
     saveState();
+    syncPushDate(k);
     return true;
   }
 
@@ -756,7 +792,9 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 18.5h15"/></svg>',
     upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V5M7.5 9.5L12 5l4.5 4.5"/><path d="M4.5 18.5h15"/></svg>',
     sparkle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18 16.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg>',
-    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6.5h11M8 12h11M8 17.5h11"/><circle cx="4.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="17.5" r="1.1" fill="currentColor" stroke="none"/></svg>'
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6.5h11M8 12h11M8 17.5h11"/><circle cx="4.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="17.5" r="1.1" fill="currentColor" stroke="none"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h9.5a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.2A3.4 3.4 0 0 0 7 18.5z"/><path d="M12 15.5v-5M9.7 12.6L12 10.3l2.3 2.3"/></svg>',
+    link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.8a3.4 3.4 0 0 0 4.8 0l2.6-2.6a3.4 3.4 0 0 0-4.8-4.8L11.4 7.6"/><path d="M14 10.2a3.4 3.4 0 0 0-4.8 0l-2.6 2.6a3.4 3.4 0 0 0 4.8 4.8l1.2-1.2"/></svg>'
   };
 
   /* ------------------------------------------------------------------ *
@@ -780,6 +818,8 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
         return '<button type="button" role="tab" data-act="setView" data-view="' + v + '" aria-selected="' + (ui.view === v) + '">' + v + '</button>';
       }).join('') +
       '</div><div class="spacer"></div>' +
+      '<button type="button" class="syncpill" id="syncpill" data-act="openSync" data-status="' + sync.status + '" aria-label="가족 연동 — ' + syncStatusText() + '" title="가족 연동">' +
+      ICONS.cloud + '<span class="lbl2">' + syncStatusText() + '</span></button>' +
       '<button type="button" class="iconbtn" data-act="openStats" aria-label="통계" title="통계">' + ICONS.stats + '</button>' +
       '<button type="button" class="iconbtn" data-act="openRandom" aria-label="랜덤 추천" title="랜덤 추천">' + ICONS.wand + '</button>' +
       '<button type="button" class="iconbtn" data-act="openMore" aria-label="더보기" title="더보기">' + ICONS.more + '</button>' +
@@ -933,6 +973,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     else if (sheet.type === 'random') html = sheetRandom();
     else if (sheet.type === 'more') html = sheetMore();
     else if (sheet.type === 'palette') html = sheetPalette();
+    else if (sheet.type === 'sync') html = sheetSync();
     else if (sheet.type === 'confirm') html = sheetConfirm();
     else if (sheet.type === 'exportText') html = sheetExportText();
     host.innerHTML = html;
@@ -1065,6 +1106,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       '<button type="button" data-act="exportJson">' + ICONS.download + '<span>JSON 내보내기 (백업)</span></button>' +
       '<button type="button" data-act="exportText">' + ICONS.list + '<span>JSON 텍스트로 보기</span></button>' +
       '<button type="button" data-act="importBtn">' + ICONS.upload + '<span>JSON 불러오기 (복원)</span></button>' +
+      '<button type="button" data-act="openSync">' + ICONS.cloud + '<span>가족 연동' + (sync.key ? ' · ' + syncStatusText() : '') + '</span></button>' +
       '<button type="button" data-act="openPalette">' + ICONS.palette + '<span>색상 테마</span></button>' +
       '<button type="button" class="danger" data-act="resetAll">' + ICONS.trash + '<span>전체 초기화</span></button>' +
       '</div>' +
@@ -1073,6 +1115,36 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       '저장: ' + (canStore ? '이 브라우저에 자동 저장 중 (localStorage)' : '메모리에만 보관 중 — 백업이 필요해요') + '<br>' +
       '버전 ' + APP_VER + ' · 광고 없음</p>';
     return sheetWrap('더보기', body);
+  }
+
+  /* ---------------- 가족 연동 ---------------- */
+  function sheetSync() {
+    var on = !!sync.key;
+    var body = '<div class="syncbox" id="syncBox" data-status="' + sync.status + '">' +
+      '<span class="sdot"></span><b>' + syncStatusText() + '</b>' +
+      (on ? '<code>' + esc(displayRoom()) + '</code>' : '') +
+      '</div>';
+    if (!on) {
+      body += '<p class="hint">남편과 같은 식단 달력을 함께 쓰려면 방을 만들어요. 코드를 아는 기기만 들어올 수 있어요.</p>' +
+        '<button type="button" class="btn primary wide" data-act="createRoom">새 가족 방 만들기</button>' +
+        '<div class="lbl">가족 코드로 참여하기</div>' +
+        '<form data-form="joinRoom" autocomplete="off">' +
+        '<div class="formrow" style="margin-top:6px">' +
+        '<input class="field" name="roomcode" placeholder="예: meal-ab12cd" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="가족 코드">' +
+        '<button class="btn primary" type="submit">참여</button></div></form>' +
+        '<p class="hint">방을 만들면 이 기기의 식단 ' + mealCount() + '개가 함께 올라가요.</p>';
+      return sheetWrap('가족 연동', body);
+    }
+    body += '<div class="lbl">남편 초대 링크</div>' +
+      '<p class="hint" style="padding:4px 2px 4px">카톡으로 이 링크를 보내면, 남편이 누르는 것만으로 연결돼요.</p>' +
+      '<div class="formrow"><input class="field ro" id="inviteBox" readonly value="' + esc(inviteLink()) + '" aria-label="초대 링크"></div>' +
+      '<button type="button" class="btn primary wide" data-act="copyInvite">남편 초대 링크 복사</button>' +
+      '<div class="lbl">가족 코드</div>' +
+      '<div class="formrow" style="margin-top:6px"><input class="field ro" id="roomCodeBox" readonly value="' + esc(displayRoom()) + '" aria-label="가족 코드"></div>' +
+      '<div class="rowbtns"><button type="button" class="btn" data-act="syncNow">지금 동기화</button>' +
+      '<button type="button" class="btn danger" data-act="leaveRoom">이 기기 연동 해제</button></div>' +
+      '<p class="hint">공유 중인 식단 ' + mealCount() + '개 · 화면 색은 기기마다 그대로예요.<br>연동을 해제해도 식단은 이 기기에 남아요.</p>';
+    return sheetWrap('가족 연동', body);
   }
 
   function sheetPalette() {
@@ -1149,6 +1221,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     state = normalize(obj);
     canStore = (function () { try { window.localStorage.setItem('__probe__', '1'); window.localStorage.removeItem('__probe__'); return true; } catch (e) { return false; } })();
     saveState();
+    syncPushAll();
     ui.cursor = todayKey();
     closeSheet();
     toast('불러왔어요 · 식단 ' + mealCount() + '개');
@@ -1187,6 +1260,34 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     openRandom: function () { ui.randomPick = null; pickRandom(); openSheet({ type: 'random' }); },
     openMore: function () { openSheet({ type: 'more' }); },
     openPalette: function () { openSheet({ type: 'palette' }); },
+    openSync: function () { openSheet({ type: 'sync' }); },
+    createRoom: function () {
+      var code = 'meal-' + randCode(6);
+      setRoom(code);
+      render();
+      syncPull({ join: true });
+      toast('가족 방을 만들었어요');
+    },
+    copyInvite: function () {
+      var link = inviteLink();
+      copyText(link).then(function (ok) {
+        if (ok) { toast('초대 링크를 복사했어요'); return; }
+        var box = el('inviteBox');
+        if (box) { try { box.focus(); box.select(); } catch (e) { } }
+        toast('링크를 길게 눌러 복사해 주세요');
+      });
+    },
+    syncNow: function () {
+      if (!sync.key) return;
+      syncPull({}).then(function () { toast('동기화했어요 · 식단 ' + mealCount() + '개'); });
+    },
+    leaveRoom: function () {
+      askConfirm('연동 해제', '이 기기에서 가족 연동만 끊어요.\n식단 기록은 그대로 남아 있어요.', '해제', function () {
+        syncDisconnect();
+        openSheet({ type: 'sync' });
+        toast('연동을 해제했어요');
+      });
+    },
     mealUp: function (btn) {
       var f = foundMeal(btn.dataset.id);
       if (f) { moveMeal(f.date, f.meal.id, -1); render(); }
@@ -1248,6 +1349,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     resetAll: function () {
       askConfirm('전체 초기화', '식단 기록을 모두 지워요. 되돌릴 수 없어요.', '모두 지우기', function () {
         state = emptyState(); saveState();
+        syncPushAll();
         closeSheet();
         toast('모두 지웠어요');
       });
@@ -1299,6 +1401,15 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
       var np = el('view').querySelector('[name="quick"]');
       if (np) np.focus();
       toast(fmtDay(ui.cursor) + '에 추가했어요');
+    },
+    joinRoom: function (form) {
+      var inp = form.querySelector('[name="roomcode"]');
+      var v = inp ? String(inp.value || '').trim() : '';
+      if (!v) { toast('가족 코드를 적어 주세요'); if (inp) inp.focus(); return; }
+      setRoom(v);
+      render();
+      syncPull({ join: true });
+      toast('가족 방에 연결하는 중이에요');
     }
   };
 
@@ -1356,9 +1467,463 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   }
 
   /* ------------------------------------------------------------------ *
+   *  가족 연동 — Firebase Realtime Database (REST + SSE · 외부 SDK 없음)
+   *  방 코드를 아는 기기끼리만 같은 식단을 실시간으로 봅니다.
+   *  화면 색(theme)·종류 색(cats)은 기기별로 두고 식단(meals)만 주고받습니다.
+   * ------------------------------------------------------------------ */
+  var DB_URL = 'https://scmj-7f5e5-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var ROOM_STORE = 'meal_calendar_sync_room_v1';
+  var META_STORE = 'meal_calendar_sync_meta_v1';
+  var INVITE_BASE = 'https://minjeong9393.github.io/meal-calendar/';
+
+  var sync = {
+    room: '',        /* 사용자가 보는 코드 (원래 글자) */
+    key: '',         /* Firebase 키 (정리된 형태) */
+    status: 'off',   /* off | connecting | sync | live | offline */
+    stream: 'idle',  /* idle | open | down */
+    es: null,
+    timer: null,
+    retry: 0,
+    pending: 0,
+    error: ''
+  };
+  var applyingRemote = false;
+
+  function lsGet(k) { try { return window.localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) {
+    try { if (v == null || v === '') window.localStorage.removeItem(k); else window.localStorage.setItem(k, v); return true; }
+    catch (e) { return false; }
+  }
+  function metaGet() {
+    var m = null;
+    try { m = JSON.parse(lsGet(META_STORE) || '{}'); } catch (e) { m = null; }
+    return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
+  }
+  function metaSet(patch) {
+    var m = metaGet();
+    Object.keys(patch || {}).forEach(function (k) { m[k] = patch[k]; });
+    lsSet(META_STORE, JSON.stringify(m));
+  }
+
+  function utf8Hex(s) {
+    var enc = '';
+    try { enc = encodeURIComponent(String(s)); } catch (e) { return ''; }
+    var out = '', i = 0;
+    while (i < enc.length) {
+      var ch = enc.charAt(i);
+      if (ch === '%') { out += enc.substr(i + 1, 2).toLowerCase(); i += 3; }
+      else { out += ('0' + enc.charCodeAt(i).toString(16)).slice(-2); i += 1; }
+    }
+    return out;
+  }
+  function utf8FromHex(h) {
+    var s = '';
+    for (var i = 0; i < h.length; i += 2) s += '%' + h.substr(i, 2);
+    try { return decodeURIComponent(s); } catch (e) { return h; }
+  }
+  /* 코드 → Firebase 키. 영문·숫자·-·_ 만 쓰면 그대로, 한글·공백·기호는 UTF-8 16진수로.
+   * (Firebase 키에 쓸 수 없는 . # $ [ ] / 를 피한다) */
+  function encodeRoomKey(raw) {
+    var code = String(raw == null ? '' : raw).trim();
+    if (!code) return '';
+    if (/^[A-Za-z0-9_-]{1,64}$/.test(code)) return code.toLowerCase();
+    return 'u-' + utf8Hex(code).slice(0, 360);
+  }
+  function decodeRoomKey(key) {
+    var k = String(key || '');
+    return k.indexOf('u-') === 0 ? utf8FromHex(k.slice(2)) : k;
+  }
+  function randCode(n) {
+    var chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    var buf = null;
+    try { if (window.crypto && window.crypto.getRandomValues) { buf = new Uint32Array(n); window.crypto.getRandomValues(buf); } } catch (e) { buf = null; }
+    var out = '';
+    for (var i = 0; i < n; i++) out += chars.charAt((buf ? buf[i] : Math.floor(Math.random() * 4294967296)) % chars.length);
+    return out;
+  }
+
+  function displayRoom() { return sync.room || (sync.key ? decodeRoomKey(sync.key) : ''); }
+  function computeStatus() {
+    if (!sync.key) return 'off';
+    if (sync.pending > 0) return 'sync';
+    if (sync.stream === 'open') return 'live';
+    if (sync.stream === 'down' || sync.error) return 'offline';
+    return 'connecting';
+  }
+  function syncStatusText() {
+    var s = computeStatus();
+    if (s === 'off') return '혼자';
+    if (s === 'sync') return '동기화 중';
+    if (s === 'offline') return '오프라인';
+    return '연동 중';
+  }
+  function refreshSyncStatus() {
+    sync.status = computeStatus();
+    var pill = el('syncpill');
+    if (pill) {
+      pill.setAttribute('data-status', sync.status);
+      pill.setAttribute('aria-label', '가족 연동 — ' + syncStatusText());
+      var lb = pill.querySelector('.lbl2');
+      if (lb) lb.textContent = syncStatusText();
+    }
+    var box = el('syncBox');
+    if (box) {
+      box.setAttribute('data-status', sync.status);
+      var b = box.querySelector('b');
+      if (b) b.textContent = syncStatusText();
+    }
+  }
+
+  function inviteLink() {
+    var base = INVITE_BASE;
+    try {
+      if ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && window.location.origin) {
+        base = window.location.origin + window.location.pathname;
+      }
+    } catch (e) { }
+    if (base.charAt(base.length - 1) !== '/') base += '/';
+    return base + '#room=' + encodeURIComponent(sync.key);
+  }
+  function copyText(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return Promise.resolve(navigator.clipboard.writeText(text)).then(function () { return true; }, function () { return legacyCopy(text); });
+      }
+    } catch (e) { }
+    return Promise.resolve(legacyCopy(text));
+  }
+  function legacyCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (e) { return false; }
+  }
+
+  function dbFetch(path, opts) {
+    if (typeof window.fetch !== 'function') return Promise.reject(new Error('no fetch'));
+    return window.fetch(DB_URL + path, opts).then(function (res) {
+      if (!res || res.ok === false) {
+        var err = new Error('HTTP ' + (res && res.status ? res.status : '?'));
+        err.status = res && res.status ? res.status : 0;
+        throw err;
+      }
+      return res.text();
+    }).then(function (txt) {
+      if (!txt) return null;
+      try { return JSON.parse(txt); } catch (e) { return null; }
+    });
+  }
+  function dbGet(path) { return dbFetch(path, { method: 'GET', cache: 'no-store' }); }
+  function dbPut(path, value) {
+    return dbFetch(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
+  }
+  function dbDel(path) { return dbFetch(path, { method: 'DELETE' }); }
+
+  function cleanMealList(list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (m) {
+      if (!m || typeof m !== 'object') return;
+      var t = String(m.t != null ? m.t : '').trim();
+      if (!t) return;
+      out.push({
+        id: String(m.id || uid()),
+        t: t.slice(0, 120),
+        c: CATMAP[m.c] ? m.c : 'home',
+        s: SLOTS.indexOf(m.s) >= 0 ? m.s : '',
+        m: String(m.m || '').slice(0, 300)
+      });
+    });
+    return out;
+  }
+  function mealsFromRemote(raw) {
+    var out = {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+    Object.keys(raw).forEach(function (k) {
+      if (!isDateKey(k)) return;
+      var clean = cleanMealList(raw[k]);
+      if (clean.length) out[k] = clean;
+    });
+    return out;
+  }
+  /* 두 기기 기록을 id 기준으로 합친다 — 어느 씨도 잃지 않게 */
+  function mergeMeals(local, remote) {
+    var out = {}, extra = false, keys = {};
+    Object.keys(remote || {}).forEach(function (k) { keys[k] = 1; });
+    Object.keys(local || {}).forEach(function (k) { keys[k] = 1; });
+    Object.keys(keys).forEach(function (k) {
+      var r = (remote[k] || []).slice();
+      var seen = {};
+      r.forEach(function (m) { seen[m.id] = 1; });
+      var add = (local[k] || []).filter(function (m) { return !seen[m['id']]; });
+      if (add.length) extra = true;
+      out[k] = r.concat(add);
+    });
+    var rc = 0, oc = 0;
+    Object.keys(remote || {}).forEach(function (k) { rc += remote[k].length; });
+    Object.keys(out).forEach(function (k) { oc += out[k].length; });
+    return { meals: out, extra: extra || rc !== oc };
+  }
+
+  function withPending(fn) {
+    sync.pending++;
+    refreshSyncStatus();
+    var p;
+    try { p = fn(); } catch (e) { p = Promise.reject(e); }
+    return Promise.resolve(p).then(function (v) {
+      sync.pending = Math.max(0, sync.pending - 1);
+      refreshSyncStatus();
+      return v;
+    }, function (e) {
+      sync.pending = Math.max(0, sync.pending - 1);
+      refreshSyncStatus();
+      throw e;
+    });
+  }
+
+  /* 입력 중이면 화면 전체를 다시 그리지 않는다 (남편 쪽 변화가 입력을 지우지 않게) */
+  function busyTyping() {
+    var a = document.activeElement;
+    if (!a || !a.tagName) return false;
+    var tag = String(a.tagName).toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea') return false;
+    return !!(a.closest && (a.closest('.sheet') || a.closest('.qadd')));
+  }
+  function safeRender() { if (!busyTyping()) render(); }
+
+  function syncFail(err) {
+    sync.error = (err && err.status) ? ('HTTP ' + err.status) : String((err && err.message) || 'error');
+    sync.stream = sync.stream === 'open' ? 'open' : 'down';
+    refreshSyncStatus();
+    if (sync.key) scheduleReconnect(sync.key);
+  }
+
+  function syncPushAll() {
+    if (!sync.key) return Promise.resolve(false);
+    var key = sync.key;
+    return withPending(function () {
+      return dbPut('/rooms/' + key + '/meals.json', state.meals).then(function () {
+        return dbPut('/rooms/' + key + '/updatedAt.json', Date.now());
+      });
+    }).then(function () {
+      sync.error = '';
+      metaSet({ lastPushAt: Date.now(), lastSync: Date.now() });
+      refreshSyncStatus();
+      return true;
+    }, function (err) { syncFail(err); return false; });
+  }
+  /* 날짜 하루만 쓰기/지우기 — 다른 날짜 기록을 건드리지 않는다 */
+  function syncPushDate(k) {
+    if (!sync.key || applyingRemote) return;
+    var key = sync.key;
+    var list = state.meals[k];
+    var p = (list && list.length)
+      ? dbPut('/rooms/' + key + '/meals/' + k + '.json', list)
+      : dbDel('/rooms/' + key + '/meals/' + k + '.json');
+    withPending(function () { return p; }).then(function () {
+      sync.error = '';
+      metaSet({ lastPushAt: Date.now(), lastSync: Date.now() });
+      return dbPut('/rooms/' + key + '/updatedAt.json', Date.now());
+    }).then(function () { refreshSyncStatus(); }, function (err) { syncFail(err); });
+  }
+
+  function syncCloseStream() {
+    if (sync.es) {
+      try { sync.es.close(); } catch (e) { }
+      sync.es = null;
+    }
+    sync.stream = 'idle';
+  }
+  function scheduleReconnect(key) {
+    if (sync.timer || !sync.key || key !== sync.key) return;
+    sync.retry = Math.min(sync.retry + 1, 6);
+    var wait = Math.min(30000, 1200 * Math.pow(2, sync.retry - 1));
+    sync.timer = setTimeout(function () {
+      sync.timer = null;
+      if (key !== sync.key) return;
+      syncPull({ quiet: true });
+    }, wait);
+  }
+  function applyStreamEvent(ev) {
+    var msg = null;
+    try { msg = JSON.parse(ev && ev.data); } catch (e) { return; }
+    if (!msg || typeof msg !== 'object') return;
+    var path = String(msg.path || '/');
+    var data = msg.data;
+    var before = JSON.stringify(state.meals);
+    applyingRemote = true;
+    try {
+      if (path === '/' || path === '') {
+        state.meals = mealsFromRemote(data);
+      } else {
+        var k = path.replace(/^\/+/, '');
+        if (!isDateKey(k)) return;
+        var clean = cleanMealList(data);
+        if (clean.length) state.meals[k] = clean;
+        else delete state.meals[k];
+      }
+      if (JSON.stringify(state.meals) !== before) {
+        saveState();
+        metaSet({ lastSync: Date.now() });
+        safeRender();
+      }
+    } finally {
+      applyingRemote = false;
+    }
+  }
+  function syncStartStream() {
+    syncCloseStream();
+    if (!sync.key || typeof window.EventSource !== 'function') { refreshSyncStatus(); return; }
+    var key = sync.key;
+    var es = null;
+    try {
+      es = new window.EventSource(DB_URL + '/rooms/' + key + '/meals.json');
+    } catch (e) {
+      sync.stream = 'down';
+      refreshSyncStatus();
+      scheduleReconnect(key);
+      return;
+    }
+    sync.es = es;
+    es.onopen = function () {
+      if (key !== sync.key) return;
+      sync.retry = 0;
+      sync.stream = 'open';
+      sync.error = '';
+      metaSet({ lastSync: Date.now() });
+      refreshSyncStatus();
+    };
+    es.onerror = function () {
+      if (key !== sync.key) return;
+      sync.stream = 'down';
+      refreshSyncStatus();
+      syncCloseStream();
+      scheduleReconnect(key);
+    };
+    var onEvent = function (ev) { if (key === sync.key) applyStreamEvent(ev); };
+    try {
+      es.addEventListener('put', onEvent);
+      es.addEventListener('patch', onEvent);
+    } catch (e) { }
+  }
+
+  /* 방에 들어가서 맞추기: 원격이 비었으면 내 기록을 올리고, 둘 다 있으면 id 기준으로 합친다. */
+  function syncPull(opts) {
+    opts = opts || {};
+    if (!sync.key) return Promise.resolve(false);
+    var key = sync.key;
+    return withPending(function () {
+      return dbGet('/rooms/' + key + '/meals.json').then(function (raw) {
+        if (key !== sync.key) return false;
+        sync.error = '';
+        var remote = mealsFromRemote(raw);
+        var remoteEmpty = !Object.keys(remote).length;
+        var localEmpty = !Object.keys(state.meals).length;
+        metaSet({ lastSync: Date.now() });
+        if (remoteEmpty) {
+          if (!localEmpty && (opts.join || !metaGet().lastPushAt)) {
+            return syncPushAll().then(function () { syncStartStream(); return true; });
+          }
+          syncStartStream();
+          return false;
+        }
+        if (localEmpty) {
+          state.meals = remote;
+          saveState();
+          safeRender();
+          syncStartStream();
+          return true;
+        }
+        var mg = mergeMeals(state.meals, remote);
+        state.meals = mg.meals;
+        saveState();
+        safeRender();
+        if (mg.extra) {
+          return syncPushAll().then(function () { syncStartStream(); return true; });
+        }
+        syncStartStream();
+        return true;
+      });
+    }).then(function (v) { refreshSyncStatus(); return v; }, function (err) {
+      syncFail(err);
+      return false;
+    });
+  }
+
+  function setRoom(raw) {
+    var code = String(raw == null ? '' : raw).trim();
+    var key = encodeRoomKey(code);
+    sync.room = code;
+    sync.key = key;
+    lsSet(ROOM_STORE, code);
+    refreshSyncStatus();
+    return key;
+  }
+  function syncDisconnect() {
+    if (sync.timer) { clearTimeout(sync.timer); sync.timer = null; }
+    syncCloseStream();
+    sync.retry = 0;
+    sync.room = '';
+    sync.key = '';
+    sync.error = '';
+    lsSet(ROOM_STORE, '');
+    refreshSyncStatus();
+  }
+  function syncConnect() {
+    if (!sync.key) { refreshSyncStatus(); return; }
+    sync.retry = 0;
+    syncPull({ join: true });
+  }
+  function roomFromHash() {
+    var h = '';
+    try { h = String(window.location.hash || ''); } catch (e) { return ''; }
+    if (h.indexOf('#room=') !== 0) return '';
+    var v = h.slice(6);
+    try { v = decodeURIComponent(v); } catch (e) { }
+    return String(v || '').trim();
+  }
+  function stripHash() {
+    try {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    } catch (e) {
+      try { window.location.hash = ''; } catch (e2) { }
+    }
+  }
+  function bootSync() {
+    var fromHash = roomFromHash();
+    if (fromHash) {
+      setRoom(fromHash);
+      stripHash();
+      syncConnect();
+      toast('가족 방에 연결했어요');
+      return;
+    }
+    var saved = lsGet(ROOM_STORE);
+    if (saved) {
+      setRoom(saved);
+      syncPull({ quiet: true });
+    }
+  }
+
+  window.addEventListener('focus', function () {
+    if (sync.key && sync.status !== 'sync') syncPull({ quiet: true });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && sync.key && sync.status !== 'sync') syncPull({ quiet: true });
+  });
+
+  /* ------------------------------------------------------------------ *
    *  시작
    * ------------------------------------------------------------------ */
   render();
+  bootSync();
 
   /* 테스트용 훅 (앱 동작에는 영향 없음) */
   window.__mealApp = {
@@ -1373,7 +1938,19 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     helpers: { dkey: dkey, parseKey: parseKey, addDays: addDays, weekOf: weekOf, monthMatrix: monthMatrix, todayKey: todayKey, fmtDay: fmtDay, dowOf: dowOf },
     actions: actions,
     forms: forms,
-    canStore: function () { return canStore; }
+    canStore: function () { return canStore; },
+    sync: sync,
+    syncStatusText: syncStatusText,
+    syncPull: syncPull,
+    syncPushDate: syncPushDate,
+    syncPushAll: syncPushAll,
+    syncDisconnect: syncDisconnect,
+    setRoom: setRoom,
+    encodeRoomKey: encodeRoomKey,
+    decodeRoomKey: decodeRoomKey,
+    mergeMeals: mergeMeals,
+    inviteLink: inviteLink,
+    dbUrl: DB_URL
   };
 })();
 
