@@ -1,7 +1,7 @@
 /* 신철민정 식단표 서비스워커 — 앱 껍데기만 캐시해서 오프라인 실행·홈 화면 설치를 돕습니다.
  * 식단 기록은 브라우저 localStorage 에만 있고 여기에는 저장하지 않습니다.
- * 화면(HTML)은 네트워크 우선이라 새 버전이 바로 반영됩니다. */
-var CACHE = 'meal-calendar-v2';
+ * 화면(HTML)과 매니페스트는 네트워크 우선이라 새 버전이 바로 반영됩니다. */
+var CACHE = 'meal-calendar-v3';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -27,6 +27,9 @@ function isHtml(req, url) {
   return /\/index\.html$/.test(url.pathname);
 }
 
+/* 매니페스트도 네트워크 우선 — 홈 화면 이름·아이콘이 항상 최신 */
+function isManifest(url) { return /\/manifest\.webmanifest$/.test(url.pathname); }
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
@@ -48,6 +51,22 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  /* 아이콘·매니페스트 등은 캐시 우선 */
+  /* 매니페스트도 네트워크 우선, 끊겼을 때만 캐시 (오프라인 설치 정보 유지) */
+  if (isManifest(url)) {
+    e.respondWith(
+      fetch(req, { cache: 'no-store' }).then(function (res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (c) { c.put('./manifest.webmanifest', copy); }).catch(function () { });
+        }
+        return res;
+      }).catch(function () {
+        return caches.match('./manifest.webmanifest').then(function (hit) { return hit || caches.match(req); });
+      })
+    );
+    return;
+  }
+
+  /* 아이콘 등은 캐시 우선 */
   e.respondWith(caches.match(req).then(function (hit) { return hit || fetch(req); }));
 });

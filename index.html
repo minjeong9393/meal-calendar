@@ -169,7 +169,7 @@ ul,ol{list-style:none}
   display:block;white-space:normal;word-break:break-word;overflow-wrap:anywhere;
   width:100%;box-sizing:border-box;border:0;
   background:#eef4fc;
-  background:color-mix(in srgb, var(--c,var(--accent)) 18%, #ffffff);
+  background:color-mix(in srgb, var(--c,var(--accent)) 23%, #ffffff);
   color:#1f2937;
   border-radius:6px;
   padding:3px 5px;
@@ -427,14 +427,14 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   var APP_VER = '1.2.0';
 
   /* 팔레트 버전. 1.x 의 어두운 색으로 저장된 화면은 한 번만 밝은 색으로 옮긴다. */
-  var PALETTE_VER = 2;
+  var PALETTE_VER = 3;
   var DEFAULT_THEME = '#3b9eff';
 
   var CATS = [
     { id: 'home', name: '집밥', color: '#34d399' },
-    { id: 'lunchbox', name: '도시락', color: '#f59e0b' },
+    { id: 'lunchbox', name: '도시락', color: '#facc15' },
     { id: 'dining', name: '외식', color: '#f472b6' },
-    { id: 'delivery', name: '배달', color: '#fb923c' },
+    { id: 'delivery', name: '배달', color: '#ef4444' },
     { id: 'hospital', name: '병원', color: '#60a5fa' },
     { id: 'snack', name: '간식', color: '#a78bfa' }
   ];
@@ -446,7 +446,16 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
   var ACCENTS = ['#3b9eff', '#2ec4a6', '#ff7e67', '#9b87f5', '#f59e0b', '#ec4899', '#56ccf2', '#4ade80'];
   /* 1.x 가 쓰던 어두운 기본 팔레트 — 저장본 승격에만 쓴다 */
   var OLD_ACCENTS = ['#5f737d', '#7c8f7a', '#8a7f6a', '#b08968', '#a1728c', '#6c86a3', '#8d6b5b', '#4f6b6a'];
-  var OLD_CATS = { home: '#7c8f7a', lunchbox: '#b08968', dining: '#a1728c', delivery: '#c47a5a', hospital: '#6c86a3', snack: '#c9919c' };
+  /* 승격 대상이 되는 예전 기본 종류 색 — v1(어두운 팔레트)과 v2(밝은 팔레트).
+   * 여기 있는 값과 똑같을 때만 새 기본색으로 바꾸고, 직접 고른 색은 건드리지 않는다. */
+  var OLD_CATS = {
+    home: ['#7c8f7a'],
+    lunchbox: ['#b08968', '#f59e0b'],
+    dining: ['#a1728c'],
+    delivery: ['#c47a5a', '#fb923c'],
+    hospital: ['#6c86a3'],
+    snack: ['#c9919c']
+  };
 
   /* 이름만 적힌 기록(메뉴가 아닌 것)은 랜덤 추천에서 건너뛰어요. */
   var GENERIC_TITLES = ['병원', '외식', '배달', '파티', '도시락', '간식', '집밥', '식사', '아침', '점심', '저녁', '기타', '모름', '없음'];
@@ -506,7 +515,7 @@ textarea.field{height:auto;padding:9px 12px;line-height:1.5;resize:vertical}
     var i = OLD_ACCENTS.indexOf(t);
     if (i >= 0) out.theme = ACCENTS[i];
     Object.keys(OLD_CATS).forEach(function (id) {
-      if (String(out.cats[id] || '').toLowerCase() === OLD_CATS[id]) out.cats[id] = DEFAULT_CATS[id];
+      if (OLD_CATS[id].indexOf(String(out.cats[id] || '').toLowerCase()) >= 0) out.cats[id] = DEFAULT_CATS[id];
     });
     out.paletteVer = PALETTE_VER;
     return true;
